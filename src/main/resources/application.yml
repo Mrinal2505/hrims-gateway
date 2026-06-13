@@ -3,7 +3,6 @@ server:
 
 spring:
   application:
-    # This name is used when the gateway registers itself with Eureka
     name: hrims-gateway
 
   cloud:
@@ -12,17 +11,12 @@ spring:
         webflux:
           discovery:
             locator:
-              # We define routes manually below for full control
-              # Set to true only if you want auto-routes from Eureka (not recommended)
               enabled: false
               lower-case-service-id: true
 
           routes:
 
             # ── Organisation Service ────────────────────────────────────────────
-            # Handles: /api/organisations/**, /api/entities/**, /api/entity-metadata/**
-            # StripPrefix=1 removes /api before forwarding to the service
-            # Example: /api/organisations/123 → forwarded as /organisations/123
             - id: organisation-service
               uri: lb://organisation-service
               predicates:
@@ -30,9 +24,15 @@ spring:
               filters:
                 - StripPrefix=1
 
+            # ── Organisation Service Swagger ────────────────────────────────────
+            - id: organisation-service-swagger
+              uri: lb://organisation-service
+              predicates:
+                - Path=/api/org/swagger-ui/**,/api/org/v3/api-docs/**,/api/org/swagger-ui.html
+              filters:
+                - StripPrefix=2
+
             # ── User Service ────────────────────────────────────────────────────
-            # Handles: /api/users/**, /api/auth/**
-            # Example: /api/auth/login → forwarded as /auth/login
             - id: user-service
               uri: lb://user-service
               predicates:
@@ -40,30 +40,29 @@ spring:
               filters:
                 - StripPrefix=1
 
-          # Global filter applied to every route
-          # Removes duplicate CORS headers that some services may add
+            # ── User Service Swagger ─────────────────────────────────────────────
+            - id: user-service-swagger
+              uri: lb://user-service
+              predicates:
+                - Path=/api/user/swagger-ui/**,/api/user/v3/api-docs/**,/api/user/swagger-ui.html
+              filters:
+                - StripPrefix=2
+
           default-filters:
             - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
 
-# ── Eureka Client ────────────────────────────────────────────────────────────
 eureka:
   client:
     service-url:
-      # Must point to the running hrims-discovery server
       defaultZone: http://localhost:8761/eureka/
     fetch-registry: true
     register-with-eureka: true
   instance:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${server.port}
-    # Heartbeat interval
     lease-renewal-interval-in-seconds: 10
-    # Eureka removes this instance after 30s of no heartbeat
     lease-expiration-duration-in-seconds: 30
 
-# ── Actuator ─────────────────────────────────────────────────────────────────
-# Visit http://localhost:8080/actuator/gateway/routes to see all active routes
-# Visit http://localhost:8080/actuator/health to check gateway health
 management:
   endpoints:
     web:
@@ -75,7 +74,6 @@ management:
     health:
       show-details: always
 
-# ── Logging ──────────────────────────────────────────────────────────────────
 logging:
   level:
     org.springframework.cloud.gateway: INFO
