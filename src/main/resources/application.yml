@@ -20,7 +20,7 @@ spring:
             - id: organisation-service
               uri: lb://organisation-service
               predicates:
-                - Path=/api/organisations/**,/api/entities/**,/api/entity-metadata/**
+                - Path=/api/organisations/**,/api/entities/**,/api/entity-metadata/**,/api/default-entity-metadata/**
               filters:
                 - StripPrefix=1
 
@@ -50,6 +50,18 @@ spring:
 
           default-filters:
             - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    config-url: /v3/api-docs/swagger-config
+    urls:
+      - url: /api/org/v3/api-docs
+        name: Organisation Service
+      - url: /api/user/v3/api-docs
+        name: User Service
+  api-docs:
+    enabled: true
 
 eureka:
   client:
